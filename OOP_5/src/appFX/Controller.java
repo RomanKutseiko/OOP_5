@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +22,7 @@ import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.RadioButton;
@@ -44,6 +47,7 @@ public class Controller implements Initializable {
     private ArrayList<TextField> textFields = new ArrayList<TextField>();
     private ObservableList<Object> listOfOrganisms = FXCollections.observableArrayList();
     private ArrayList<Class> classList = new ArrayList(); 
+    private Method packArchive, unpackArchive;
 
 	
 
@@ -54,7 +58,7 @@ public class Controller implements Initializable {
         textFields.add(cellsAmountTextField);
         try {
             try {
-				listOfOrganisms = FXCollections.observableArrayList(Arrays.asList(deserialize()));
+				listOfOrganisms = FXCollections.observableArrayList(Arrays.asList(deserialize("E:/Java/HP/Serialization/temp.out")));
 			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -92,6 +96,8 @@ public class Controller implements Initializable {
     private TextField cellTextField = new TextField();
     @FXML
     private TextField cellsAmountTextField = new TextField();
+    @FXML
+    private CheckBox archivationCheckBox = new CheckBox();
 
 
 
@@ -238,8 +244,8 @@ public class Controller implements Initializable {
     }
     
     
-    private Object[] deserialize() throws IOException, ClassNotFoundException {
-		  FileInputStream fis = new FileInputStream("E:/Java/HP/Serialization/temp.out");
+    private Object[] deserialize(String fileName) throws IOException, ClassNotFoundException {
+		  FileInputStream fis = new FileInputStream(fileName);
 		  Object[] list = null;
 		  ObjectInputStream oin = new ObjectInputStream(fis);
 		  //resolveProxyClass
@@ -250,8 +256,21 @@ public class Controller implements Initializable {
     @FXML
     private void deserialiseClick() throws IOException, ClassNotFoundException {
     	 try {
-             try {
- 				listOfOrganisms = FXCollections.observableArrayList(Arrays.asList(deserialize()));
+             try{
+            	if (archivationCheckBox.isSelected()){
+            		try {
+						unpackArchive.invoke(classList.get(classList.size() - 1).getDeclaredConstructor().newInstance());
+					} catch (IllegalAccessException | IllegalArgumentException
+							| InvocationTargetException
+							| InstantiationException | NoSuchMethodException
+							| SecurityException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+            		listOfOrganisms = FXCollections.observableArrayList(Arrays.asList(deserialize("E:/Java/HP/Serialization/test.out")));
+            	}
+            	else
+            		listOfOrganisms = FXCollections.observableArrayList(Arrays.asList(deserialize("E:/Java/HP/Serialization/temp.out")));
  			} catch (ClassNotFoundException e) {
  				// TODO Auto-generated catch block
  				e.printStackTrace();
@@ -268,12 +287,23 @@ public class Controller implements Initializable {
     
     @FXML
     private void serializeClick() throws IOException {
+    	
 		  FileOutputStream fos = new FileOutputStream("E:/Java/HP/Serialization/temp.out");
 		  ObjectOutputStream oos = new ObjectOutputStream(fos);
 		  oos.writeObject(listOfOrganisms.toArray());
 		  oos.flush();
 		  oos.close();
-    	
+		  
+	    	if(archivationCheckBox.isSelected()){
+				try {
+					packArchive.invoke(classList.get(classList.size() - 1).getDeclaredConstructor().newInstance());
+				} catch (IllegalAccessException | IllegalArgumentException
+						| InvocationTargetException | InstantiationException
+						| NoSuchMethodException | SecurityException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    	}
     }
     
     
@@ -282,7 +312,13 @@ public class Controller implements Initializable {
     	FileChooser fileChooser = new FileChooser();
     	Loader loader = new Loader(fileChooser.showOpenDialog(null));
     	classList.add(loader.getClassFromPlugin());
-    	createButton(classList.size() - 1);
+    	if (classList.get(classList.size() - 1) != null){
+	    	packArchive = loader.getClassMethod("packArchive");
+	    	unpackArchive = loader.getClassMethod("unpackArchive");
+	    	enableCheckBox();
+    	}
+    	else classList.remove(classList.size() - 1);
+    	//createButton(classList.size() - 1);
     }
     
     private Organism createOrganism (int index){
@@ -298,7 +334,7 @@ public class Controller implements Initializable {
     }
     
     
-    private void createButton(int index){
+/*    private void createButton(int index){
     	Organism newOrganism = createOrganism(index);
     	RadioButton radioButton = new RadioButton();
     	radioButton.setToggleGroup(group);
@@ -321,6 +357,10 @@ public class Controller implements Initializable {
         radioButton.setLayoutY(index * 38 + 272);
         radioButton.setLayoutX(27);
         pane.getChildren().add(radioButton);
+    }*/
+    
+    private void enableCheckBox(){
+    	archivationCheckBox.setVisible(true);
     }
     
     
